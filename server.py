@@ -3,7 +3,7 @@ import os
 import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
-    """Whitespace実行エンジン（シンプル＆クリーン版）"""
+    """Whitespace実行エンジン"""
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -24,9 +24,9 @@ def parse_and_run_whitespace(code, stdin_text=""):
     
     try:
         while idx < length:
-            if tokens[idx] == 'S':  # Stack Manipulation
+            if tokens[idx] == 'S':
                 idx += 1
-                if idx < length and tokens[idx] == 'S':  # Push
+                if idx < length and tokens[idx] == 'S':
                     idx += 1
                     if idx < length:
                         sign = 1 if tokens[idx] == 'S' else -1
@@ -39,42 +39,42 @@ def parse_and_run_whitespace(code, stdin_text=""):
                         stack.append(sign * val)
                 elif idx < length and tokens[idx] == 'L':
                     idx += 1
-                    if idx < length and tokens[idx] == 'S':  # Duplicate
+                    if idx < length and tokens[idx] == 'S':
                         idx += 1
                         if stack:
                             stack.append(stack[-1])
-                    elif idx < length and tokens[idx] == 'L':  # Discard
+                    elif idx < length and tokens[idx] == 'L':
                         idx += 1
                         if stack:
                             stack.pop()
                 else:
                     idx += 1
 
-            elif tokens[idx] == 'T':  # I/O or Heap
+            elif tokens[idx] == 'T':
                 idx += 1
-                if idx < length and tokens[idx] == 'L':  # I/O
+                if idx < length and tokens[idx] == 'L':
                     idx += 1
-                    if idx < length and tokens[idx] == 'S':  # Output
+                    if idx < length and tokens[idx] == 'S':
                         idx += 1
-                        if idx < length and tokens[idx] == 'S':  # Output Char
+                        if idx < length and tokens[idx] == 'S':
                             idx += 1
                             if stack:
                                 char_code = stack.pop()
                                 output_buf.append(chr(char_code & 0xFF))
-                        elif idx < length and tokens[idx] == 'T':  # Output Num
+                        elif idx < length and tokens[idx] == 'T':
                             idx += 1
                             if stack:
                                 num_val = stack.pop()
                                 output_buf.append(str(num_val))
-                    elif idx < length and tokens[idx] == 'T':  # Input
+                    elif idx < length and tokens[idx] == 'T':
                         idx += 1
-                        if idx < length and tokens[idx] == 'S':  # Read Char
+                        if idx < length and tokens[idx] == 'S':
                             idx += 1
                             if stack:
                                 addr = stack.pop()
                                 char_val = ord(input_chars.pop(0)) if input_chars else 0
                                 heap[addr] = char_val
-                        elif idx < length and tokens[idx] == 'T':  # Read Num
+                        elif idx < length and tokens[idx] == 'T':
                             idx += 1
                             if stack:
                                 addr = stack.pop()
