@@ -12,8 +12,13 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
             with open("app.ws", "r", encoding="utf-8", errors="ignore") as f:
                 ws_code = f.read()
                 
-        # 空白やタブを視覚的に分かりやすく置換
+        # 空白やタブ、改行をあらかじめ置換しておく
         visual_code = ws_code.replace(" ", "␣").replace("\t", "→\t").replace("\n", "↵\n")
+        
+        # カウント数を変数に保持（f-string内で関数を呼ばない）
+        space_count = ws_code.count(' ')
+        tab_count = ws_code.count('\t')
+        line_count = ws_code.count('\n')
 
         html = f"""<html>
             <head><title>Whitespace Web Server</title></head>
@@ -23,9 +28,9 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
                 <pre style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #4ec9b0; overflow-x: auto;">{visual_code}</pre>
                 <h3>🚀 解析結果</h3>
                 <div style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #ce9178;">
-                    スペースの数: {ws_code.count(' ')} 個<br>
-                    タブの数: {ws_code.count('\t')} 個<br>
-                    改行の数: {ws_code.count('\n')} 個
+                    スペースの数: {space_count} 個<br>
+                    タブの数: {tab_count} 個<br>
+                    改行の数: {line_count} 個
                 </div>
             </body>
         </html>"""
