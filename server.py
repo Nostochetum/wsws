@@ -3,8 +3,7 @@ import os
 import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
-    """Whitespace実行エンジン（標準入力・タブ改行判定修正版）"""
-    # 余計な空白が入らないよう、厳密に文字を抽出する
+    """Whitespace実行エンジン（標準入力・数値/文字出力修正版）"""
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -18,7 +17,7 @@ def parse_and_run_whitespace(code, stdin_text=""):
             
     stack = []
     heap = {}
-    output_bytes = bytearray()
+    output_buf = []
     input_chars = list(stdin_text)
     idx = 0
     length = len(tokens)
@@ -61,11 +60,12 @@ def parse_and_run_whitespace(code, stdin_text=""):
                             idx += 1
                             if stack:
                                 char_code = stack.pop()
-                                output_bytes.append(char_code & 0xFF)
+                                output_buf.append(chr(char_code & 0xFF))
                         elif idx < length and tokens[idx] == 'T':  # Output Num
                             idx += 1
                             if stack:
-                                output_bytes.extend(str(stack.pop()).encode('utf-8'))
+                                num_val = stack.pop()
+                                output_buf.append(str(num_val))
                     elif idx < length and tokens[idx] == 'T':  # Input
                         idx += 1
                         if idx < length and tokens[idx] == 'S':  # Read Char
@@ -74,11 +74,14 @@ def parse_and_run_whitespace(code, stdin_text=""):
                                 addr = stack.pop()
                                 char_val = ord(input_chars.pop(0)) if input_chars else 0
                                 heap[addr] = char_val
-                        elif idx < length and tokens[idx] == 'T':  # Read Num
+                        elif idx < length and tokens[idx] == 'T':  # Read Num (1行から整数読み取り)
                             idx += 1
                             if stack:
                                 addr = stack.pop()
                                 num_str = ""
+                                # 余白や改行をスキップ
+                                while input_chars and input_chars[0] not in '0123456789-':
+                                    input_chars.pop(0)
                                 while input_chars and input_chars[0] in '0123456789-':
                                     num_str += input_chars.pop(0)
                                 heap[addr] = int(num_str) if num_str else 0
@@ -87,7 +90,7 @@ def parse_and_run_whitespace(code, stdin_text=""):
             else:
                 idx += 1
 
-        res = output_bytes.decode('utf-8', errors='replace')
+        res = "".join(output_buf)
         return res if res else "（出力結果はありませんでした）"
     except Exception as e:
         return f"実行時エラー: {str(e)}"
@@ -115,7 +118,7 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
             <textarea name="code" style="width: 100%; height: 180px; background: #2d2d2d; color: #4ec9b0; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="Whitespaceコードを入力..."></textarea>
             
             <h3>📥 標準入力 (stdin)</h3>
-            <textarea name="stdin" style="width: 100%; height: 70px; background: #2d2d2d; color: #ce9178; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="プログラムへ渡す入力値"></textarea><br><br>
+            <textarea name="stdin" style="width: 100%; height: 70px; background: #2d2d2d; color: #ce9178; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="プログラムへ渡す入力値（例: 32）"></textarea><br><br>
             
             <button type="submit" style="padding: 10px 20px; background: #0e639c; color: white; border: none; border-radius: 5px; font-size: 1em; cursor: pointer;">🚀 実行する</button>
         </form>
