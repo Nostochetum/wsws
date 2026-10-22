@@ -3,7 +3,8 @@ import os
 import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
-    """Whitespace実行エンジン（標準入力・UTF-8対応）"""
+    """Whitespace実行エンジン（標準入力・タブ改行判定修正版）"""
+    # 余計な空白が入らないよう、厳密に文字を抽出する
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -100,7 +101,6 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
 
-        # テストページ (/test)
         if path == "/test":
             html = """<!DOCTYPE html>
 <html>
@@ -115,7 +115,7 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
             <textarea name="code" style="width: 100%; height: 180px; background: #2d2d2d; color: #4ec9b0; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="Whitespaceコードを入力..."></textarea>
             
             <h3>📥 標準入力 (stdin)</h3>
-            <textarea name="stdin" style="width: 100%; height: 70px; background: #2d2d2d; color: #ce9178; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="プログラムへ渡す入力値（数値や文字列など）"></textarea><br><br>
+            <textarea name="stdin" style="width: 100%; height: 70px; background: #2d2d2d; color: #ce9178; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="プログラムへ渡す入力値"></textarea><br><br>
             
             <button type="submit" style="padding: 10px 20px; background: #0e639c; color: white; border: none; border-radius: 5px; font-size: 1em; cursor: pointer;">🚀 実行する</button>
         </form>
@@ -126,7 +126,6 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
             self.wfile.write(html.encode('utf-8'))
             return
 
-        # トップページ (/)
         ws_code = ""
         if os.path.exists("app.ws"):
             with open("app.ws", "r", encoding="utf-8", errors="ignore") as f:
