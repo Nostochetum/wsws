@@ -97,7 +97,7 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
         <title>Whitespace Web Server</title>
     </head>
     <body style="font-family: sans-serif; padding: 30px; background: #1e1e1e; color: #d4d4d4;">
-        <h2>🌌 Whitespace Web Inspector & Runner</h2>
+        <h2>🌌 wswsws, Whitespace Web server Workspace</h2>
         
         <!-- 実行結果を一番上に表示 -->
         <h3>🚀 実行結果</h3>
