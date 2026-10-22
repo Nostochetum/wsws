@@ -1,9 +1,9 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
+import urllib.parse
 
 def parse_and_run_whitespace(code):
-    """Whitespace実行エンジン（日本語UTF-8出力対応）"""
-    # 余計なスペースが入らないよう修正
+    """Whitespace実行エンジン（UTF-8日本語対応）"""
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -56,7 +56,6 @@ def parse_and_run_whitespace(code):
                         idx += 1
                         if stack:
                             char_code = stack.pop()
-                            # バイト列として追加（UTF-8文字の正しい結合）
                             output_bytes.append(char_code & 0xFF)
                     elif idx < length and tokens[idx] == 'T':
                         idx += 1
@@ -74,17 +73,43 @@ def parse_and_run_whitespace(code):
 
 class WhitespaceHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        path = parsed_path.path
+
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
+
+        # テスト入力ページ (/test)
+        if path == "/test":
+            html = """<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Whitespace Code Test</title>
+    </head>
+    <body style="font-family: sans-serif; padding: 30px; background: #1e1e1e; color: #d4d4d4;">
+        <h2>🧪 Whitespace コードテスト</h2>
+        <p>下のテキストエリアに任意のWhitespaceコードを入力して「実行」ボタンを押してください。</p>
         
+        <form action="/test" method="POST">
+            <textarea name="code" style="width: 100%; height: 200px; background: #2d2d2d; color: #4ec9b0; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="ここにスペース・タブ・改行を含むコードを入力..."></textarea><br><br>
+            <button type="submit" style="padding: 10px 20px; background: #0e639c; color: white; border: none; border-radius: 5px; font-size: 1em; cursor: pointer;">🚀 実行する</button>
+        </form>
+        <hr style="border: 0; border-top: 1px solid #444; margin-top: 30px;">
+        <p><a href="/" style="color: #4ec9b0;">🏠 トップページに戻る</a></p>
+    </body>
+</html>"""
+            self.wfile.write(html.encode('utf-8'))
+            return
+
+        # トップページ (/) - 以前の構成を維持し最下部にリンク配置
         ws_code = ""
         if os.path.exists("app.ws"):
             with open("app.ws", "r", encoding="utf-8", errors="ignore") as f:
                 ws_code = f.read()
                 
         visual_code = ws_code.replace(" ", "␣").replace("\t", "→\t").replace("\n", "↵\n")
-        
         execution_result = parse_and_run_whitespace(ws_code)
         space_count = ws_code.count(' ')
         tab_count = ws_code.count('\t')
@@ -99,20 +124,58 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
     <body style="font-family: sans-serif; padding: 30px; background: #1e1e1e; color: #d4d4d4;">
         <h2>🌌 wswsws, Whitespace Web server Workspace</h2>
         
-        <!-- 実行結果を一番上に表示 -->
         <h3>🚀 実行結果</h3>
         <pre style="background: #2d2d2d; padding: 20px; border-radius: 8px; color: #ce9178; white-space: pre-wrap; font-family: monospace; font-size: 1.4em; border: 1px solid #444;">{execution_result}</pre>
         
         <h3>📄 app.ws のソースコード</h3>
         <pre style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #4ec9b0; overflow-x: auto; font-family: monospace;">{visual_code}</pre>
         
-        <!-- 下部にカウンターを表示 -->
         <h3>📊 コード解析 (文字数統計)</h3>
         <div style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #9cdcfe; font-family: monospace;">
             スペースの数: <strong>{space_count}</strong> 個<br>
             タブの数: <strong>{tab_count}</strong> 個<br>
             改行の数: <strong>{line_count}</strong> 個
         </div>
+
+        <!-- ページ最下部にテストページへのリンクを配置 -->
+        <hr style="border: 0; border-top: 1px solid #444; margin-top: 30px;">
+        <p>🧪 任意コードの動作確認はこちら: <a href="/test" style="color: #4ec9b0; text-decoration: underline;">コードテストページ (/test) へ</a></p>
+    </body>
+</html>"""
+        self.wfile.write(html.encode('utf-8'))
+
+    def do_POST(self):
+        # フォームからのコード実行リクエスト (/test)
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length).decode('utf-8', errors='ignore')
+        
+        params = urllib.parse.parse_qs(post_data)
+        input_code = params.get('code', [''])[0]
+        
+        execution_result = parse_and_run_whitespace(input_code)
+        visual_code = input_code.replace(" ", "␣").replace("\t", "→\t").replace("\n", "↵\n")
+
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.end_headers()
+
+        html = f"""<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Whitespace Code Test Result</title>
+    </head>
+    <body style="font-family: sans-serif; padding: 30px; background: #1e1e1e; color: #d4d4d4;">
+        <h2>🧪 Whitespace コードテスト結果</h2>
+        
+        <h3>🚀 実行結果</h3>
+        <pre style="background: #2d2d2d; padding: 20px; border-radius: 8px; color: #ce9178; white-space: pre-wrap; font-family: monospace; font-size: 1.4em; border: 1px solid #444;">{execution_result}</pre>
+
+        <h3>📄 入力されたソースコード</h3>
+        <pre style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #4ec9b0; overflow-x: auto; font-family: monospace;">{visual_code}</pre>
+
+        <hr style="border: 0; border-top: 1px solid #444; margin-top: 30px;">
+        <p><a href="/test" style="color: #4ec9b0;">← 別のコードをテストする</a> | <a href="/" style="color: #4ec9b0;">🏠 トップページに戻る</a></p>
     </body>
 </html>"""
         self.wfile.write(html.encode('utf-8'))
