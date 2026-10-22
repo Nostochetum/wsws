@@ -3,7 +3,7 @@ import os
 import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
-    """Whitespace実行エンジン（標準入力・UTF-8対応・数値出力修正版）"""
+    """Whitespace実行エンジン（数値・文字出力統合版）"""
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -17,7 +17,7 @@ def parse_and_run_whitespace(code, stdin_text=""):
             
     stack = []
     heap = {}
-    output_bytes = bytearray()
+    output_buf = []
     input_chars = list(stdin_text)
     idx = 0
     length = len(tokens)
@@ -60,12 +60,12 @@ def parse_and_run_whitespace(code, stdin_text=""):
                             idx += 1
                             if stack:
                                 char_code = stack.pop()
-                                output_bytes.append(char_code & 0xFF)
-                        elif idx < length and tokens[idx] == 'T':  # Output Num (修正箇所: 10進数文字列としてバイト追加)
+                                output_buf.append(chr(char_code & 0xFF))
+                        elif idx < length and tokens[idx] == 'T':  # Output Num
                             idx += 1
                             if stack:
                                 num_val = stack.pop()
-                                output_bytes.extend(str(num_val).encode('ascii'))
+                                output_buf.append(str(num_val))
                     elif idx < length and tokens[idx] == 'T':  # Input
                         idx += 1
                         if idx < length and tokens[idx] == 'S':  # Read Char
@@ -89,7 +89,7 @@ def parse_and_run_whitespace(code, stdin_text=""):
             else:
                 idx += 1
 
-        res = output_bytes.decode('utf-8', errors='replace')
+        res = "".join(output_buf)
         return res if res else "（出力結果はありませんでした）"
     except Exception as e:
         return f"実行時エラー: {str(e)}"
@@ -103,7 +103,6 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
 
-        # テストページ (/test)
         if path == "/test":
             html = """<!DOCTYPE html>
 <html>
@@ -118,7 +117,7 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
             <textarea name="code" style="width: 100%; height: 180px; background: #2d2d2d; color: #4ec9b0; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="Whitespaceコードを入力..."></textarea>
             
             <h3>📥 標準入力 (stdin)</h3>
-            <textarea name="stdin" style="width: 100%; height: 70px; background: #2d2d2d; color: #ce9178; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="プログラムへ渡す入力値（数値や文字列など）"></textarea><br><br>
+            <textarea name="stdin" style="width: 100%; height: 70px; background: #2d2d2d; color: #ce9178; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="プログラムへ渡す入力値（例: 32）"></textarea><br><br>
             
             <button type="submit" style="padding: 10px 20px; background: #0e639c; color: white; border: none; border-radius: 5px; font-size: 1em; cursor: pointer;">🚀 実行する</button>
         </form>
@@ -129,7 +128,6 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
             self.wfile.write(html.encode('utf-8'))
             return
 
-        # トップページ (/)
         ws_code = ""
         if os.path.exists("app.ws"):
             with open("app.ws", "r", encoding="utf-8", errors="ignore") as f:
