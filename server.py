@@ -3,7 +3,7 @@ import os
 import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
-    """Whitespace実行エンジン"""
+    """Whitespace実行エンジン（標準入力・UTF-8対応）"""
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -17,16 +17,16 @@ def parse_and_run_whitespace(code, stdin_text=""):
             
     stack = []
     heap = {}
-    output_buf = []
+    output_bytes = bytearray()
     input_chars = list(stdin_text)
     idx = 0
     length = len(tokens)
     
     try:
         while idx < length:
-            if tokens[idx] == 'S':
+            if tokens[idx] == 'S':  # Stack Manipulation
                 idx += 1
-                if idx < length and tokens[idx] == 'S':
+                if idx < length and tokens[idx] == 'S':  # Push
                     idx += 1
                     if idx < length:
                         sign = 1 if tokens[idx] == 'S' else -1
@@ -39,48 +39,45 @@ def parse_and_run_whitespace(code, stdin_text=""):
                         stack.append(sign * val)
                 elif idx < length and tokens[idx] == 'L':
                     idx += 1
-                    if idx < length and tokens[idx] == 'S':
+                    if idx < length and tokens[idx] == 'S':  # Duplicate
                         idx += 1
                         if stack:
                             stack.append(stack[-1])
-                    elif idx < length and tokens[idx] == 'L':
+                    elif idx < length and tokens[idx] == 'L':  # Discard
                         idx += 1
                         if stack:
                             stack.pop()
                 else:
                     idx += 1
 
-            elif tokens[idx] == 'T':
+            elif tokens[idx] == 'T':  # I/O or Heap
                 idx += 1
-                if idx < length and tokens[idx] == 'L':
+                if idx < length and tokens[idx] == 'L':  # I/O
                     idx += 1
-                    if idx < length and tokens[idx] == 'S':
+                    if idx < length and tokens[idx] == 'S':  # Output
                         idx += 1
-                        if idx < length and tokens[idx] == 'S':
+                        if idx < length and tokens[idx] == 'S':  # Output Char
                             idx += 1
                             if stack:
                                 char_code = stack.pop()
-                                output_buf.append(chr(char_code & 0xFF))
-                        elif idx < length and tokens[idx] == 'T':
+                                output_bytes.append(char_code & 0xFF)
+                        elif idx < length and tokens[idx] == 'T':  # Output Num
                             idx += 1
                             if stack:
-                                num_val = stack.pop()
-                                output_buf.append(str(num_val))
-                    elif idx < length and tokens[idx] == 'T':
+                                output_bytes.extend(str(stack.pop()).encode('utf-8'))
+                    elif idx < length and tokens[idx] == 'T':  # Input
                         idx += 1
-                        if idx < length and tokens[idx] == 'S':
+                        if idx < length and tokens[idx] == 'S':  # Read Char
                             idx += 1
                             if stack:
                                 addr = stack.pop()
                                 char_val = ord(input_chars.pop(0)) if input_chars else 0
                                 heap[addr] = char_val
-                        elif idx < length and tokens[idx] == 'T':
+                        elif idx < length and tokens[idx] == 'T':  # Read Num
                             idx += 1
                             if stack:
                                 addr = stack.pop()
                                 num_str = ""
-                                while input_chars and input_chars[0] not in '0123456789-':
-                                    input_chars.pop(0)
                                 while input_chars and input_chars[0] in '0123456789-':
                                     num_str += input_chars.pop(0)
                                 heap[addr] = int(num_str) if num_str else 0
@@ -89,7 +86,7 @@ def parse_and_run_whitespace(code, stdin_text=""):
             else:
                 idx += 1
 
-        res = "".join(output_buf)
+        res = output_bytes.decode('utf-8', errors='replace')
         return res if res else "（出力結果はありませんでした）"
     except Exception as e:
         return f"実行時エラー: {str(e)}"
@@ -103,6 +100,7 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.end_headers()
 
+        # テストページ (/test)
         if path == "/test":
             html = """<!DOCTYPE html>
 <html>
@@ -117,7 +115,7 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
             <textarea name="code" style="width: 100%; height: 180px; background: #2d2d2d; color: #4ec9b0; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="Whitespaceコードを入力..."></textarea>
             
             <h3>📥 標準入力 (stdin)</h3>
-            <textarea name="stdin" style="width: 100%; height: 70px; background: #2d2d2d; color: #ce9178; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="プログラムへ渡す入力値（例: 32）"></textarea><br><br>
+            <textarea name="stdin" style="width: 100%; height: 70px; background: #2d2d2d; color: #ce9178; font-family: monospace; padding: 10px; border: 1px solid #444; border-radius: 5px;" placeholder="プログラムへ渡す入力値（数値や文字列など）"></textarea><br><br>
             
             <button type="submit" style="padding: 10px 20px; background: #0e639c; color: white; border: none; border-radius: 5px; font-size: 1em; cursor: pointer;">🚀 実行する</button>
         </form>
@@ -128,6 +126,7 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
             self.wfile.write(html.encode('utf-8'))
             return
 
+        # トップページ (/)
         ws_code = ""
         if os.path.exists("app.ws"):
             with open("app.ws", "r", encoding="utf-8", errors="ignore") as f:
