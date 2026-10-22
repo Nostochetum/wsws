@@ -4,7 +4,7 @@ import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
     """Whitespace実行エンジン（厳密判定・標準入力対応）"""
-    # 余計なスペースを含めず、厳密に1文字ずつ判定
+    # エスケープシーケンスを正確に判定（余計なスペースを含めない）
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
