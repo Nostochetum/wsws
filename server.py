@@ -3,7 +3,7 @@ import os
 import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
-    """Whitespace実行エンジン（標準入力・UTF-8対応）"""
+    """Whitespace実行エンジン（標準入力・UTF-8対応・数値出力修正版）"""
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -61,10 +61,11 @@ def parse_and_run_whitespace(code, stdin_text=""):
                             if stack:
                                 char_code = stack.pop()
                                 output_bytes.append(char_code & 0xFF)
-                        elif idx < length and tokens[idx] == 'T':  # Output Num
+                        elif idx < length and tokens[idx] == 'T':  # Output Num (修正箇所: 10進数文字列としてバイト追加)
                             idx += 1
                             if stack:
-                                output_bytes.extend(str(stack.pop()).encode('utf-8'))
+                                num_val = stack.pop()
+                                output_bytes.extend(str(num_val).encode('ascii'))
                     elif idx < length and tokens[idx] == 'T':  # Input
                         idx += 1
                         if idx < length and tokens[idx] == 'S':  # Read Char
@@ -78,6 +79,8 @@ def parse_and_run_whitespace(code, stdin_text=""):
                             if stack:
                                 addr = stack.pop()
                                 num_str = ""
+                                while input_chars and input_chars[0] not in '0123456789-':
+                                    input_chars.pop(0)
                                 while input_chars and input_chars[0] in '0123456789-':
                                     num_str += input_chars.pop(0)
                                 heap[addr] = int(num_str) if num_str else 0
