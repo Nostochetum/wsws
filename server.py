@@ -3,7 +3,7 @@ import os
 import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
-    """Whitespace実行エンジン（厳密判定・標準入力対応）"""
+    """Whitespace実行エンジン（判定・数値出力・標準入力修正版）"""
     # エスケープシーケンスのみを厳密に抽出（余計な空白文字を排除）
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
@@ -62,7 +62,7 @@ def parse_and_run_whitespace(code, stdin_text=""):
                             if stack:
                                 char_code = stack.pop()
                                 output_buf.append(chr(char_code & 0xFF))
-                        elif idx < length and tokens[idx] == 'T':  # Output Num
+                        elif idx < length and tokens[idx] == 'T':  # Output Num (10進数)
                             idx += 1
                             if stack:
                                 num_val = stack.pop()
@@ -75,7 +75,7 @@ def parse_and_run_whitespace(code, stdin_text=""):
                                 addr = stack.pop()
                                 char_val = ord(input_chars.pop(0)) if input_chars else 0
                                 heap[addr] = char_val
-                        elif idx < length and tokens[idx] == 'T':  # Read Num
+                        elif idx < length and tokens[idx] == 'T':  # Read Num (1行から整数取得)
                             idx += 1
                             if stack:
                                 addr = stack.pop()
