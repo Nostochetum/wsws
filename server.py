@@ -23,24 +23,37 @@ def parse_and_run_whitespace(code):
 
     while idx < length:
         # Stack Manipulation: Push
-        if tokens[idx] == 'S' and tokens[idx+1] == 'S':
+        if idx + 1 < length and tokens[idx] == 'S' and tokens[idx+1] == 'S':
             idx += 2
-            sign = 1 if tokens[idx] == 'S' else -1
-            idx += 1
-            val = 0
-            while idx < length and tokens[idx] != 'L':
-                val = (val << 1) | (1 if tokens[idx] == 'T' else 0)
+            if idx < length:
+                sign = 1 if tokens[idx] == 'S' else -1
                 idx += 1
-            idx += 1
-            stack.append(sign * val)
+                val = 0
+                while idx < length and tokens[idx] != 'L':
+                    val = (val << 1) | (1 if tokens[idx] == 'T' else 0)
+                    idx += 1
+                if idx < length and tokens[idx] == 'L':
+                    idx += 1
+                stack.append(sign * val)
+                continue
 
-        # I/O: Output Num
-        elif tokens[idx] == 'T' and tokens[idx+1] == 'N' and tokens[idx+2] == 'T':  # トークン構造に合わせた分岐
-            idx += 2
+        # I/O: Output Character
+        elif idx + 2 < length and tokens[idx] == 'T' and tokens[idx+1] == 'S' and tokens[idx+2] == 'S':
+            idx += 3
             if stack:
-                output_bytes.extend(str(stack.pop()).encode('utf-8'))
-        
-        # その他の命令処理...
+                val = stack.pop()
+                output_bytes.append(val & 0xFF)
+            continue
+
+        # I/O: Output Number
+        elif idx + 2 < length and tokens[idx] == 'T' and tokens[idx+1] == 'S' and tokens[idx+2] == 'T':
+            idx += 3
+            if stack:
+                val = stack.pop()
+                output_bytes.extend(str(val).encode('utf-8'))
+            continue
+
+        # その他の命令（必要に応じて追加）
         idx += 1
 
-    return output_bytes
+    return bytes(output_bytes)
