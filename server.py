@@ -3,7 +3,6 @@ import os
 
 def parse_and_run_whitespace(code):
     """簡易Whitespace実行エンジン"""
-    # 空白文字(Space, Tab, LF)以外を取り除く
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -22,12 +21,10 @@ def parse_and_run_whitespace(code):
     
     try:
         while idx < length:
-            # IMP (Instruction Modification Parameter) 解析
-            if tokens[idx] == 'S': # Stack Manipulation
+            if tokens[idx] == 'S':
                 idx += 1
-                if idx < length and tokens[idx] == 'S': # Push
+                if idx < length and tokens[idx] == 'S':
                     idx += 1
-                    # 数値取得 (S=0, T=1)
                     if idx < length:
                         sign = 1 if tokens[idx] == 'S' else -1
                         idx += 1
@@ -39,27 +36,27 @@ def parse_and_run_whitespace(code):
                         stack.append(sign * val)
                 elif idx < length and tokens[idx] == 'L':
                     idx += 1
-                    if idx < length and tokens[idx] == 'S': # Duplicate top
+                    if idx < length and tokens[idx] == 'S':
                         idx += 1
                         if stack:
                             stack.append(stack[-1])
-                    elif idx < length and tokens[idx] == 'L': # Discard top
+                    elif idx < length and tokens[idx] == 'L':
                         idx += 1
                         if stack:
                             stack.pop()
                 else:
                     idx += 1
 
-            elif tokens[idx] == 'T' and idx + 1 < length and tokens[idx+1] == 'L': # I/O
+            elif tokens[idx] == 'T' and idx + 1 < length and tokens[idx+1] == 'L':
                 idx += 2
-                if idx < length and tokens[idx] == 'S': # Output Character
+                if idx < length and tokens[idx] == 'S':
                     idx += 1
                     if idx < length and tokens[idx] == 'S':
                         idx += 1
                         if stack:
                             char_code = stack.pop()
                             output.append(chr(char_code))
-                    elif idx < length and tokens[idx] == 'T': # Output Number
+                    elif idx < length and tokens[idx] == 'T':
                         idx += 1
                         if stack:
                             output.append(str(stack.pop()))
@@ -69,7 +66,7 @@ def parse_and_run_whitespace(code):
                 idx += 1
 
         res = "".join(output)
-        return res if res else "（出力結果はありませんでした。文字出力命令がないか処理未対応のプログラミング構造が含まれています）"
+        return res if res else "（出力結果はありませんでした）"
     except Exception as e:
         return f"実行時エラー: {str(e)}"
 
@@ -86,21 +83,37 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
                 
         visual_code = ws_code.replace(" ", "␣").replace("\t", "→\t").replace("\n", "↵\n")
         
-        # 実際にWhitespaceを実行して結果を取得
+        # 実行結果と文字数カウントの計算
         execution_result = parse_and_run_whitespace(ws_code)
+        space_count = ws_code.count(' ')
+        tab_count = ws_code.count('\t')
+        line_count = ws_code.count('\n')
 
-        html = f"""<html>
-            <head><title>Whitespace Web Server</title></head>
-            <body style="font-family: monospace; padding: 30px; background: #1e1e1e; color: #d4d4d4;">
-                <h2>🌌 Whitespace Web Inspector & Runner</h2>
-                
-                <h3>📄 app.ws のソースコード</h3>
-                <pre style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #4ec9b0; overflow-x: auto;">{visual_code}</pre>
-                
-                <h3>🚀 実行結果</h3>
-                <pre style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #ce9178; white-space: pre-wrap;">{execution_result}</pre>
-            </body>
-        </html>"""
+        html = f"""<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Whitespace Web Server</title>
+    </head>
+    <body style="font-family: sans-serif; padding: 30px; background: #1e1e1e; color: #d4d4d4;">
+        <h2>🌌 Whitespace Web Inspector & Runner</h2>
+        
+        <!-- ページ最上部に大きく実行結果を配置 -->
+        <h3>🚀 実行結果</h3>
+        <pre style="background: #2d2d2d; padding: 20px; border-radius: 8px; color: #ce9178; white-space: pre-wrap; font-family: monospace; font-size: 1.4em; border: 1px solid #444;">{execution_result}</pre>
+        
+        <h3>📄 app.ws のソースコード</h3>
+        <pre style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #4ec9b0; overflow-x: auto; font-family: monospace;">{visual_code}</pre>
+        
+        <!-- ページ下部に文字数カウンターを再配置 -->
+        <h3>📊 コード解析 (文字数統計)</h3>
+        <div style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #9cdcfe; font-family: monospace;">
+            スペースの数: <strong>{space_count}</strong> 個<br>
+            タブの数: <strong>{tab_count}</strong> 個<br>
+            改行の数: <strong>{line_count}</strong> 個
+        </div>
+    </body>
+</html>"""
         self.wfile.write(html.encode('utf-8'))
 
 if __name__ == '__main__':
