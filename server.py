@@ -2,7 +2,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
 
 def parse_and_run_whitespace(code):
-    """簡易Whitespace実行エンジン"""
+    """Whitespace実行エンジン（日本語UTF-8出力対応）"""
+    # 余計なスペースが入らないよう修正
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
@@ -15,7 +16,7 @@ def parse_and_run_whitespace(code):
             tokens.append('L')
             
     stack = []
-    output = []
+    output_bytes = bytearray()
     idx = 0
     length = len(tokens)
     
@@ -55,17 +56,18 @@ def parse_and_run_whitespace(code):
                         idx += 1
                         if stack:
                             char_code = stack.pop()
-                            output.append(chr(char_code))
+                            # バイト列として追加（UTF-8文字の正しい結合）
+                            output_bytes.append(char_code & 0xFF)
                     elif idx < length and tokens[idx] == 'T':
                         idx += 1
                         if stack:
-                            output.append(str(stack.pop()))
+                            output_bytes.extend(str(stack.pop()).encode('utf-8'))
                 else:
                     idx += 1
             else:
                 idx += 1
 
-        res = "".join(output)
+        res = output_bytes.decode('utf-8', errors='replace')
         return res if res else "（出力結果はありませんでした）"
     except Exception as e:
         return f"実行時エラー: {str(e)}"
@@ -83,7 +85,6 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
                 
         visual_code = ws_code.replace(" ", "␣").replace("\t", "→\t").replace("\n", "↵\n")
         
-        # 実行結果と文字数カウントの計算
         execution_result = parse_and_run_whitespace(ws_code)
         space_count = ws_code.count(' ')
         tab_count = ws_code.count('\t')
@@ -98,14 +99,14 @@ class WhitespaceHandler(BaseHTTPRequestHandler):
     <body style="font-family: sans-serif; padding: 30px; background: #1e1e1e; color: #d4d4d4;">
         <h2>🌌 Whitespace Web Inspector & Runner</h2>
         
-        <!-- ページ最上部に大きく実行結果を配置 -->
+        <!-- 実行結果を一番上に表示 -->
         <h3>🚀 実行結果</h3>
         <pre style="background: #2d2d2d; padding: 20px; border-radius: 8px; color: #ce9178; white-space: pre-wrap; font-family: monospace; font-size: 1.4em; border: 1px solid #444;">{execution_result}</pre>
         
         <h3>📄 app.ws のソースコード</h3>
         <pre style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #4ec9b0; overflow-x: auto; font-family: monospace;">{visual_code}</pre>
         
-        <!-- ページ下部に文字数カウンターを再配置 -->
+        <!-- 下部にカウンターを表示 -->
         <h3>📊 コード解析 (文字数統計)</h3>
         <div style="background: #2d2d2d; padding: 15px; border-radius: 5px; color: #9cdcfe; font-family: monospace;">
             スペースの数: <strong>{space_count}</strong> 個<br>
