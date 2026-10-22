@@ -3,7 +3,7 @@ import os
 import urllib.parse
 
 def parse_and_run_whitespace(code, stdin_text=""):
-    """Whitespace実行エンジン（数値・文字出力統合版）"""
+    """Whitespace実行エンジン"""
     cleaned = [c for c in code if c in (' ', '\t', '\n')]
     
     tokens = []
